@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+
+  accounts:
+    image: sebastianhv/accounts:latest
+    mem_limit: 700m
+    ports:
+      - "8080:8080"
+    networks:
+      - eazybank-network
+
+  loans:
+    image: sebastianhv/loans:latest
+    mem_limit: 700m
+    ports:
+      - "8090:8090"
+    networks:
+      - eazybank-network
+  
+  cards:
+    image: sebastianhv/cards:latest
+    mem_limit: 700m
+    ports:
+      - "9000:9000"
+    networks:
+      - eazybank-network
+
+networks:
+  eazybank-network:
