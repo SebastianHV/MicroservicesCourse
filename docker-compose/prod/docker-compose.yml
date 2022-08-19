@@ -1,0 +1,115 @@
+version: '3.8'
+
+# We define all the microservices we want to use with this docker-compose file
+# The configurations and parameters posted here have preference over the ones in the application.properties file
+services:
+
+  configserver:
+    image: sebastianhv/configserver:latest
+    mem_limit: 700m
+    # First port is exposed to external world, the second one is internal
+    ports:
+      - "8071:8071"
+    # This network will be shared among all the services, that way they will communicate wit each other
+    # They work as bridges between microservices
+    networks:
+      - eazybank
+
+  eurekaserver:
+    image: sebastianhv/eurekaserver:latest
+    mem_limit: 700m
+    ports:
+      - "8070:8070"
+    networks:
+      - eazybank
+    depends_on:
+      - configserver
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
+
+  accounts:
+    # Image used for the service
+    image: sebastianhv/accounts:latest
+    # Limit of memory asigned to the container
+    mem_limit: 700m
+    # External and internal port
+    ports:
+      - "8080:8080"
+    networks:
+      - eazybank
+    # Docker compose makes sure the configserver is being started before accounts service
+    depends_on:
+      - configserver
+      - eurekaserver
+    # This configurations are in case the deploy fails or if the configserver hasn't load the properties or the REST API
+    deploy:
+      # Restart the server
+      restart_policy:
+        # When it fails
+        condition: on-failure
+        # This delay will allow the config server to load properly
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    # Environmental variables
+    # Which profile the microservice will use and what configserver will connect to
+    # We have to make sure the containers start with a certain profile
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # We make sure that only when the service is able to connect to the configserver, then only it should start successfully
+      # The name configserver form the URL comes from the service name we defined in the docker compose file
+      # Here, we don't use a hostname or IP.
+      SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8070/eureka
+
+  loans:
+    image: sebastianhv/loans:latest
+    mem_limit: 700m
+    ports:
+      - "8090:8090"
+    networks:
+      - eazybank
+    depends_on:
+      - configserver
+      - eurekaserver
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8070/eureka
+  
+  cards:
+    image: sebastianhv/cards:latest
+    mem_limit: 700m
+    ports:
+      - "9000:9000"
+    networks:
+      - eazybank
+    depends_on:
+      - configserver
+      - eurekaserver
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8070/eureka
+    
+networks:
+  eazybank:
