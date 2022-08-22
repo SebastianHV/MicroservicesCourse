@@ -8,6 +8,7 @@ import com.sebastianhv.accounts.model.*;
 import com.sebastianhv.accounts.repository.AccountsRepository;
 import com.sebastianhv.accounts.service.client.CardsFeignClient;
 import com.sebastianhv.accounts.service.client.LoansFeignClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +27,7 @@ public class AccountsController {
     AccountServiceConfig accountsConfig;
 
     @Autowired
-    LoansFeignClient loansFeignCLient;
+    LoansFeignClient loansFeignClient;
 
     @Autowired
     CardsFeignClient cardsFeignClient;
@@ -54,11 +55,12 @@ public class AccountsController {
 
 //    We create a new method that will expose an API path with the customer details
     @PostMapping("/myCustomerDetails")
+    @CircuitBreaker(name = "detailsForCustomerSupportApp", fallbackMethod = "myCustomerDetailsFallback")
     public CustomerDetails myCustomerDetails(@RequestBody Customer customer) {
 
         Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId());
 //        Using the feign client of loans and cards microservices, we can invoke those paths without knowing their exact ip and port, or direct endpoint URL
-        List<Loans> loans = loansFeignCLient.getLoansDetails(customer);
+        List<Loans> loans = loansFeignClient.getLoansDetails(customer);
         List<Cards> cards = cardsFeignClient.getCardDetails(customer);
 
         CustomerDetails customerDetails = new CustomerDetails();
@@ -66,6 +68,17 @@ public class AccountsController {
         customerDetails.setLoans(loans);
         customerDetails.setCards(cards);
 
+        return customerDetails;
+    }
+
+//    It has to accept the same request parameters/object as the original method/API call
+//    It has to accept a throwable, so we can make our fallback mechanism based on the exception we received from the original method
+    private CustomerDetails myCustomerDetailsFallback(Customer customer, Throwable t) {
+        Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId());
+        List<Loans> loans = loansFeignClient.getLoansDetails(customer);
+        CustomerDetails customerDetails = new CustomerDetails();
+        customerDetails.setAccounts(accounts);
+        customerDetails.setLoans(loans);
         return customerDetails;
     }
 }
