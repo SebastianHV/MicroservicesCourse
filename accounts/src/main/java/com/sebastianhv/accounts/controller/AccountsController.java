@@ -9,6 +9,7 @@ import com.sebastianhv.accounts.repository.AccountsRepository;
 import com.sebastianhv.accounts.service.client.CardsFeignClient;
 import com.sebastianhv.accounts.service.client.LoansFeignClient;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,7 +56,8 @@ public class AccountsController {
 
 //    We create a new method that will expose an API path with the customer details
     @PostMapping("/myCustomerDetails")
-    @CircuitBreaker(name = "detailsForCustomerSupportApp", fallbackMethod = "myCustomerDetailsFallback")
+//    @CircuitBreaker(name = "detailsForCustomerSupportApp", fallbackMethod = "myCustomerDetailsFallback")
+    @Retry(name = "retryForCustomerDetails", fallbackMethod = "myCustomerDetailsFallback")
     public CustomerDetails myCustomerDetails(@RequestBody Customer customer) {
 
         Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId());
