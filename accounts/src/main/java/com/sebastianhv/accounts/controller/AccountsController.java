@@ -12,10 +12,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -57,14 +54,16 @@ public class AccountsController {
 
 //    We create a new method that will expose an API path with the customer details
     @PostMapping("/myCustomerDetails")
-//    @CircuitBreaker(name = "detailsForCustomerSupportApp", fallbackMethod = "myCustomerDetailsFallback")
+    @CircuitBreaker(name = "detailsForCustomerSupportApp", fallbackMethod = "myCustomerDetailsFallback")
     @Retry(name = "retryForCustomerDetails", fallbackMethod = "myCustomerDetailsFallback")
-    public CustomerDetails myCustomerDetails(@RequestBody Customer customer) {
+//    We add the header as a parameter we can accept
+    public CustomerDetails myCustomerDetails(@RequestHeader("eazybank-correlation-id") String correlationId, @RequestBody Customer customer) {
 
         Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId());
 //        Using the feign client of loans and cards microservices, we can invoke those paths without knowing their exact ip and port, or direct endpoint URL
-        List<Loans> loans = loansFeignClient.getLoansDetails(customer);
-        List<Cards> cards = cardsFeignClient.getCardDetails(customer);
+//        We update our methods to accept the Header correlationId
+        List<Loans> loans = loansFeignClient.getLoansDetails(correlationId, customer);
+        List<Cards> cards = cardsFeignClient.getCardDetails(correlationId, customer);
 
         CustomerDetails customerDetails = new CustomerDetails();
         customerDetails.setAccounts(accounts);
@@ -76,9 +75,9 @@ public class AccountsController {
 
 //    It has to accept the same request parameters/object as the original method/API call
 //    It has to accept a throwable, so we can make our fallback mechanism based on the exception we received from the original method
-    private CustomerDetails myCustomerDetailsFallback(Customer customer, Throwable t) {
+    private CustomerDetails myCustomerDetailsFallback(@RequestHeader("eazybank-correlation-id") String correlationId, Customer customer, Throwable t) {
         Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId());
-        List<Loans> loans = loansFeignClient.getLoansDetails(customer);
+        List<Loans> loans = loansFeignClient.getLoansDetails(correlationId, customer);
         CustomerDetails customerDetails = new CustomerDetails();
         customerDetails.setAccounts(accounts);
         customerDetails.setLoans(loans);
