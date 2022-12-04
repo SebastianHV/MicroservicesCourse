@@ -112,7 +112,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8070/eureka
   
   gatewayserver:
-    image: eazybytes/gatewayserver:latest
+    image: sebastianhv/gatewayserver:latest
     mem_limit: 700m
     ports:
       - "8072:8072"
