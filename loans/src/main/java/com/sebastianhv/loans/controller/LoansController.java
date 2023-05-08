@@ -8,6 +8,8 @@ import com.sebastianhv.loans.model.Customer;
 import com.sebastianhv.loans.model.Loans;
 import com.sebastianhv.loans.model.Properties;
 import com.sebastianhv.loans.repository.LoansRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +17,8 @@ import java.util.List;
 
 @RestController
 public class LoansController {
+
+    private static final Logger logger = LoggerFactory.getLogger(LoansController.class);
 
     @Autowired
     private LoansRepository loansRepository;
@@ -24,8 +28,10 @@ public class LoansController {
 
     @PostMapping("/myLoans")
     public List<Loans> getLoansDetails(@RequestHeader("eazybank-correlation-id") String correlationId, @RequestBody Customer customer) {
-        System.out.println("Invoking Loans Microservice");
+//        System.out.println("Invoking Loans Microservice");
+        logger.info("getLoansDetails() method started.");
         List<Loans> loans = loansRepository.findByCustomerIdOrderByStartDtDesc(customer.getCustomerId());
+        logger.info("getLoansDetails() method ended.");
         if (loans != null) {
             return loans;
         } else {

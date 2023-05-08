@@ -16,10 +16,10 @@ import reactor.core.publisher.Mono;
 //We add this annotation so that Spring Boot will detect it and auto wire it
 @Component
 //We have to implement de GlobalFilter interface
-public class TraceFilter implements GlobalFilter {
+public class MyTraceFilter implements GlobalFilter {
 
 //    We define a logger
-    private static final Logger logger = LoggerFactory.getLogger(TraceFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(MyTraceFilter.class);
 
 //    Utility class we created
     @Autowired
